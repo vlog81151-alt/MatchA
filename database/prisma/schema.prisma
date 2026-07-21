@@ -1,0 +1,571 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  WOMAN
+  MAN
+  NON_BINARY
+  SELF_DESCRIBE
+}
+
+enum RelationshipGoal {
+  LONG_TERM
+  LIFE_PARTNER
+  CASUAL
+  FRIENDSHIP
+  FIGURING_OUT
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PHOTO_VERIFIED
+  ID_VERIFIED
+  MANUAL_REVIEW
+  REJECTED
+}
+
+enum PhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LikeType {
+  LIKE
+  SUPER_LIKE
+}
+
+enum MatchStatus {
+  ACTIVE
+  UNMATCHED
+  BLOCKED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  GIF
+  VOICE
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  DELETED
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+}
+
+enum NotificationType {
+  LIKE
+  MATCH
+  MESSAGE
+  CONCERT_INVITATION
+  INSTANT_DATE_REQUEST
+  PROFILE_VIEW
+  VERIFICATION
+  SYSTEM
+}
+
+enum EventCategory {
+  BOOK_CLUB
+  FOOD_FESTIVAL
+  COMEDY
+  MOVIE
+  WORKSHOP
+  COMMUNITY
+  CONCERT
+}
+
+enum ParticipantStatus {
+  INTERESTED
+  JOINED
+  CANCELLED
+  REMOVED
+}
+
+enum InstantDateActivity {
+  COFFEE
+  DINNER
+  WALK
+  DRIVE
+  ART
+  MARKET
+  CASUAL
+}
+
+enum InstantDateStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  RESCHEDULED
+  COMPLETED
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum AuditAction {
+  USER_CREATED
+  LOGIN
+  LOGOUT
+  TOKEN_REFRESHED
+  EMAIL_OTP_REQUESTED
+  EMAIL_OTP_VERIFIED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  EMAIL_VERIFIED
+  PROFILE_UPDATED
+  LIKE_CREATED
+  MATCH_CREATED
+  REPORT_CREATED
+  USER_BLOCKED
+  VERIFICATION_REVIEWED
+  ADMIN_ACTION
+}
+
+model User {
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  emailVerifiedAt       DateTime?
+  phone                 String?                @unique
+  passwordHash          String?
+  googleId              String?                @unique
+  name                  String?
+  age                   Int?
+  gender                Gender?
+  interestedIn          Gender[]
+  profession            String?
+  education             String?
+  heightCm              Int?
+  religion              String?
+  languages             String[]
+  bio                   String?
+  relationshipGoal      RelationshipGoal?
+  lifestyle             Json?
+  smoking               String?
+  drinking              String?
+  pets                  String?
+  music                 String[]
+  food                  String[]
+  travel                String[]
+  promptAnswers         Json?
+  city                  String?
+  state                 String?
+  country               String?
+  latitude              Decimal?               @db.Decimal(9, 6)
+  longitude             Decimal?               @db.Decimal(9, 6)
+  profileCompletion     Int                    @default(0)
+  verificationStatus    VerificationStatus     @default(UNVERIFIED)
+  role                  String                 @default("USER")
+  isBanned              Boolean                @default(false)
+  bannedAt              DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  deletedAt             DateTime?
+  photos                Photo[]
+  interests             UserInterest[]
+  likesGiven            Like[]                 @relation("likesGiven")
+  likesReceived         Like[]                 @relation("likesReceived")
+  passesGiven           Pass[]                 @relation("passesGiven")
+  passesReceived        Pass[]                 @relation("passesReceived")
+  matchesAsUserOne      Match[]                @relation("matchesAsUserOne")
+  matchesAsUserTwo      Match[]                @relation("matchesAsUserTwo")
+  sentMessages          Message[]              @relation("sentMessages")
+  chatStates            ChatParticipantState[]
+  notifications         Notification[]
+  pushTokens            PushToken[]
+  eventParticipants     EventParticipant[]
+  concertParticipants   ConcertParticipant[]
+  instantDateRequests   InstantDate[]          @relation("instantRequester")
+  instantDateRecipients InstantDate[]          @relation("instantRecipient")
+  reportsMade           Report[]               @relation("reportsMade")
+  reportsReceived       Report[]               @relation("reportsReceived")
+  blocksMade            Block[]                @relation("blocksMade")
+  blocksReceived        Block[]                @relation("blocksReceived")
+  verifications         Verification[]
+  sessions              Session[]
+  refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
+  settings              Settings?
+  auditLogs             AuditLog[]
+
+  @@index([city, state, country])
+  @@index([latitude, longitude])
+  @@index([verificationStatus])
+}
+
+model Photo {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cloudinaryId String
+  url          String
+  blurHash     String?
+  sortOrder    Int         @default(0)
+  status       PhotoStatus @default(PENDING)
+  isPrimary    Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId, sortOrder])
+}
+
+model Interest {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  category  String
+  users     UserInterest[]
+  createdAt DateTime       @default(now())
+}
+
+model UserInterest {
+  userId     String
+  interestId String
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, interestId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  type       LikeType @default(LIKE)
+  createdAt  DateTime @default(now())
+  fromUser   User     @relation("likesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("likesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId, createdAt])
+}
+
+model Pass {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+  fromUser   User     @relation("passesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("passesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Match {
+  id                 String                 @id @default(cuid())
+  userOneId          String
+  userTwoId          String
+  compatibilityScore Int
+  status             MatchStatus            @default(ACTIVE)
+  matchedAt          DateTime               @default(now())
+  unmatchedAt        DateTime?
+  userOne            User                   @relation("matchesAsUserOne", fields: [userOneId], references: [id], onDelete: Cascade)
+  userTwo            User                   @relation("matchesAsUserTwo", fields: [userTwoId], references: [id], onDelete: Cascade)
+  messages           Message[]
+  chatStates         ChatParticipantState[]
+
+  @@unique([userOneId, userTwoId])
+  @@index([status, matchedAt])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  matchId   String
+  senderId  String
+  type      MessageType   @default(TEXT)
+  body      String?
+  mediaUrl  String?
+  metadata  Json?
+  status    MessageStatus @default(SENT)
+  replyToId String?
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime      @default(now())
+  match     Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  replyTo   Message?      @relation("messageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   Message[]     @relation("messageReplies")
+  sender    User          @relation("sentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+  @@index([replyToId])
+  @@index([senderId])
+}
+
+model ChatParticipantState {
+  id              String    @id @default(cuid())
+  matchId         String
+  userId          String
+  mutedAt         DateTime?
+  archivedAt      DateTime?
+  lastReadAt      DateTime?
+  lastDeliveredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  match           Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, userId])
+  @@index([userId, archivedAt, updatedAt])
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  channel   NotificationChannel
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model PushToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String
+  tokenHash  String    @unique
+  platform   String
+  deviceId   String?
+  userAgent  String?
+  revokedAt  DateTime?
+  lastSeenAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, revokedAt, lastSeenAt])
+  @@index([platform])
+}
+
+model Event {
+  id           String             @id @default(cuid())
+  title        String
+  category     EventCategory
+  description  String
+  city         String
+  venue        String
+  startsAt     DateTime
+  endsAt       DateTime?
+  coverImage   String?
+  isPublished  Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  participants EventParticipant[]
+
+  @@index([city, category, startsAt])
+}
+
+model Concert {
+  id           String               @id @default(cuid())
+  artist       String
+  title        String
+  city         String
+  venue        String
+  startsAt     DateTime
+  coverImage   String?
+  genreTags    String[]
+  isPublished  Boolean              @default(false)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  participants ConcertParticipant[]
+
+  @@index([city, startsAt])
+}
+
+model EventParticipant {
+  eventId   String
+  userId    String
+  status    ParticipantStatus @default(INTERESTED)
+  createdAt DateTime          @default(now())
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+}
+
+model ConcertParticipant {
+  concertId String
+  userId    String
+  intent    String
+  status    ParticipantStatus @default(INTERESTED)
+  createdAt DateTime          @default(now())
+  concert   Concert           @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([concertId, userId])
+}
+
+model InstantDate {
+  id          String              @id @default(cuid())
+  requesterId String
+  recipientId String?
+  activity    InstantDateActivity
+  timeWindow  String
+  proposedAt  DateTime
+  venue       String?
+  latitude    Decimal?            @db.Decimal(9, 6)
+  longitude   Decimal?            @db.Decimal(9, 6)
+  status      InstantDateStatus   @default(PENDING)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  requester   User                @relation("instantRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  recipient   User?               @relation("instantRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([activity, status, proposedAt])
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  reportedUserId String
+  reason         String
+  description    String?
+  status         ReportStatus @default(OPEN)
+  metadata       Json?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reporter       User         @relation("reportsMade", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User         @relation("reportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model Block {
+  id            String   @id @default(cuid())
+  blockerId     String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+  blocker       User     @relation("blocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("blocksReceived", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+}
+
+model Verification {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  status      VerificationStatus @default(MANUAL_REVIEW)
+  providerRef String?
+  evidenceUrl String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reason      String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Session {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime       @default(now())
+  tokens    RefreshToken[]
+
+  @@index([userId, expiresAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  sessionId String?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session   Session?  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  rotatedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, familyId])
+  @@index([sessionId])
+}
+
+model EmailOtp {
+  id          String    @id @default(cuid())
+  email       String
+  codeHash    String
+  purpose     String
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email, purpose, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model Settings {
+  userId             String   @id
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discoverable       Boolean  @default(true)
+  showDistance       Boolean  @default(true)
+  showOnlineStatus   Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  emailNotifications Boolean  @default(true)
+  maxDistanceKm      Int      @default(25)
+  minAge             Int      @default(18)
+  maxAge             Int      @default(35)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  actorId   String?
+  actor     User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    AuditAction
+  entity    String
+  entityId  String?
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}

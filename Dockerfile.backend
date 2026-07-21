@@ -1,0 +1,25 @@
+FROM node:22-alpine AS base
+WORKDIR /app
+RUN corepack enable
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY backend/package.json backend/package.json
+COPY database/package.json database/package.json
+COPY packages/config/package.json packages/config/package.json
+COPY packages/types/package.json packages/types/package.json
+RUN corepack pnpm install --filter @matcha/backend... --frozen-lockfile
+
+FROM deps AS build
+COPY . .
+RUN corepack pnpm --filter @matcha/database db:generate
+RUN corepack pnpm --filter @matcha/backend build
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/backend/dist ./dist
+COPY --from=build /app/backend/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
+EXPOSE 5000
+CMD ["node", "dist/server.js"]

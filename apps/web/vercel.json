@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && corepack pnpm --filter @matcha/web build",
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && corepack pnpm install --frozen-lockfile"
+}

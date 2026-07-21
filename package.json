@@ -1,0 +1,52 @@
+{
+  "name": "matcha",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "corepack pnpm -r --parallel --if-present dev",
+    "dev:web": "corepack pnpm --filter @matcha/web dev",
+    "dev:admin": "corepack pnpm --filter @matcha/admin dev",
+    "dev:backend": "corepack pnpm --filter @matcha/backend dev",
+    "build": "corepack pnpm -r --if-present build",
+    "db:deploy": "corepack pnpm --filter @matcha/database db:deploy",
+    "db:generate": "corepack pnpm --filter @matcha/database db:generate",
+    "db:migrate": "corepack pnpm --filter @matcha/database db:migrate",
+    "db:reset": "corepack pnpm --filter @matcha/database db:reset",
+    "db:seed": "corepack pnpm --filter @matcha/database db:seed",
+    "db:status": "corepack pnpm --filter @matcha/database db:status",
+    "db:studio": "corepack pnpm --filter @matcha/database db:studio",
+    "lint": "corepack pnpm -r --if-present lint",
+    "preflight": "node scripts/deploy-preflight.mjs all",
+    "test": "corepack pnpm -r --if-present test",
+    "test:backend": "corepack pnpm --filter @matcha/backend test",
+    "test:web": "corepack pnpm --filter @matcha/web test",
+    "typecheck": "corepack pnpm -r --if-present typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@eslint/js": "^9.31.0",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.37.0",
+    "vitest": "^4.1.9"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
