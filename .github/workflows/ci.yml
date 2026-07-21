@@ -9,6 +9,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://matcha_ci:matcha_ci_password@localhost:5432/matcha_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
